@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provenance Guard — Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: #1e2433;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .card-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1;
+    }
+
+    .card-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .bar-label {
+      width: 110px;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 10px;
+      background: #2d3748;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease;
+    }
+
+    .bar-fill.ai    { background: #ef4444; }
+    .bar-fill.human { background: #22c55e; }
+    .bar-fill.uncertain { background: #f59e0b; }
+    .bar-fill.text  { background: #6366f1; }
+    .bar-fill.code  { background: #06b6d4; }
+
+    .bar-pct {
+      width: 44px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .panel {
+      background: #1e2433;
+      border: 1px solid #2d3748;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .conf-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #2d3748;
+      font-size: 0.82rem;
+    }
+    .conf-row:last-child { border-bottom: none; }
+    .conf-badge {
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+    .conf-badge.ai      { background: #7f1d1d; color: #fca5a5; }
+    .conf-badge.human   { background: #14532d; color: #86efac; }
+    .conf-badge.uncertain { background: #78350f; color: #fcd34d; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      color: #64748b;
+      font-weight: 600;
+      border-bottom: 1px solid #2d3748;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #1a2030;
+      color: #cbd5e1;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #232b3e; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge-ai        { background: #7f1d1d; color: #fca5a5; }
+    .badge-human     { background: #14532d; color: #86efac; }
+    .badge-uncertain { background: #78350f; color: #fcd34d; }
+    .badge-appeal    { background: #1e3a5f; color: #93c5fd; }
+    .badge-cert      { background: #3b0764; color: #d8b4fe; }
+    .badge-code      { background: #164e63; color: #67e8f9; }
+
+    .mono { font-family: "SF Mono", "Fira Code", monospace; font-size: 0.72rem; color: #94a3b8; }
+
+    .refresh-note {
+      font-size: 0.72rem;
+      color: #475569;
+      margin-top: 24px;
+      text-align: right;
+    }
+
+    @media (max-width: 640px) {
+      .two-col { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Provenance Guard</h1>
+<div class="subtitle" id="updated-at">Loading…</div>
+
+<!-- KPI cards -->
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Total Submissions</div>
+    <div class="card-value" id="total">—</div>
+    <div class="card-sub" id="type-breakdown">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Appeals Filed</div>
+    <div class="card-value" id="appeals">—</div>
+    <div class="card-sub" id="appeal-rate">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Certificates Issued</div>
+    <div class="card-value" id="certs">—</div>
+    <div class="card-sub">Verified Human credentials</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Uncertain Rate</div>
+    <div class="card-value" id="uncertain-pct">—</div>
+    <div class="card-sub">Submissions without confident result</div>
+  </div>
+</div>
+
+<!-- Attribution breakdown + confidence calibration -->
+<div class="two-col">
+  <div class="panel">
+    <div class="section-title">Attribution Breakdown</div>
+    <div id="bars">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">Avg Confidence by Attribution</div>
+    <div id="confidence-table">Loading…</div>
+  </div>
+</div>
+
+<!-- Content type breakdown -->
+<div class="panel" style="margin-bottom:32px">
+  <div class="section-title">Content Type</div>
+  <div id="type-bars">Loading…</div>
+</div>
+
+<!-- Recent audit log -->
+<div class="panel">
+  <div class="section-title">Recent Audit Log</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Event</th>
+        <th>Content ID</th>
+        <th>Creator</th>
+        <th>Attribution</th>
+        <th>Confidence</th>
+        <th>Signals</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+      <tr><td colspan="7" style="color:#475569">Loading…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="refresh-note">Auto-refreshes every 15 seconds</div>
+
+<script>
+  async function load() {
+    const [analytics, log] = await Promise.all([
+      fetch('/analytics').then(r => r.json()),
+      fetch('/log?limit=15').then(r => r.json()),
+    ]);
+
+    // KPIs
+    document.getElementById('total').textContent = analytics.total_submissions;
+    document.getElementById('appeals').textContent = analytics.appeals_filed;
+    document.getElementById('appeal-rate').textContent =
+      `${(analytics.appeal_rate * 100).toFixed(1)}% of submissions`;
+    document.getElementById('certs').textContent = analytics.certificates_issued;
+
+    const uncertainPct = analytics.attribution_breakdown.uncertain?.pct ?? 0;
+    document.getElementById('uncertain-pct').textContent = `${uncertainPct}%`;
+
+    const types = analytics.content_type_breakdown;
+    const typeStr = Object.entries(types).map(([k,v]) => `${v} ${k}`).join(' · ');
+    document.getElementById('type-breakdown').textContent = typeStr;
+
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('updated-at').textContent = `Last updated ${now} · auto-refresh every 15s`;
+
+    // Attribution bars
+    const attrOrder = [
+      ['ai_generated', 'ai', 'AI Generated'],
+      ['uncertain',    'uncertain', 'Uncertain'],
+      ['human',        'human', 'Human'],
+    ];
+    const barsEl = document.getElementById('bars');
+    barsEl.innerHTML = attrOrder.map(([key, cls, label]) => {
+      const d = analytics.attribution_breakdown[key] ?? { count: 0, pct: 0 };
+      return `<div class="bar-row">
+        <div class="bar-label">${label} <span style="color:#475569">(${d.count})</span></div>
+        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${d.pct}%"></div></div>
+        <div class="bar-pct">${d.pct}%</div>
+      </div>`;
+    }).join('');
+
+    // Confidence calibration
+    const conf = analytics.avg_confidence_by_attribution;
+    const confEl = document.getElementById('confidence-table');
+    confEl.innerHTML = attrOrder.map(([key, cls, label]) => {
+      const val = conf[key] != null ? (conf[key] * 100).toFixed(1) + '%' : '—';
+      return `<div class="conf-row">
+        <span class="conf-badge ${cls}">${label}</span>
+        <span style="color:#f1f5f9;font-weight:600">${val} avg confidence</span>
+      </div>`;
+    }).join('');
+
+    // Content type bars
+    const total = analytics.total_submissions || 1;
+    const typeOrder = [['text','text','Text'],['code','code','Code']];
+    const typeBarsEl = document.getElementById('type-bars');
+    typeBarsEl.innerHTML = typeOrder.map(([key, cls, label]) => {
+      const count = types[key] ?? 0;
+      const pct = ((count / total) * 100).toFixed(1);
+      return `<div class="bar-row">
+        <div class="bar-label">${label} <span style="color:#475569">(${count})</span></div>
+        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <div class="bar-pct">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    // Log table
+    const tbody = document.getElementById('log-body');
+    if (!log.entries.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="color:#475569">No entries yet.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = [...log.entries].reverse().map(e => {
+      const ts = new Date(e.timestamp).toLocaleTimeString();
+      const evtBadge = {
+        classification: `<span class="badge badge-${e.attribution ?? 'appeal'}">${e.event_type}</span>`,
+        appeal: `<span class="badge badge-appeal">appeal</span>`,
+        certificate_issued: `<span class="badge badge-cert">certificate</span>`,
+      }[e.event_type] ?? e.event_type;
+
+      const attrBadge = e.attribution
+        ? `<span class="badge badge-${e.attribution}">${e.attribution}</span>` : '—';
+
+      const ctypeBadge = e.content_type && e.content_type !== 'text'
+        ? ` <span class="badge badge-code">${e.content_type}</span>` : '';
+
+      const conf = e.confidence != null ? `${(e.confidence * 100).toFixed(0)}%` : '—';
+
+      const signals = e.llm_score != null
+        ? `LLM ${e.llm_score.toFixed(2)} · Stylo ${(e.stylometric_score ?? 0).toFixed(2)} · Lex ${(e.lexical_score ?? 0).toFixed(2)}`
+        : (e.original_confidence != null ? `was ${(e.original_confidence * 100).toFixed(0)}%` : '—');
+
+      return `<tr>
+        <td class="mono">${ts}</td>
+        <td>${evtBadge}${ctypeBadge}</td>
+        <td class="mono">${e.content_id ?? '—'}</td>
+        <td class="mono">${e.creator_id ?? '—'}</td>
+        <td>${attrBadge}</td>
+        <td style="font-weight:600;color:#f1f5f9">${conf}</td>
+        <td class="mono">${signals}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  load();
+  setInterval(load, 15000);
+</script>
+</body>
+</html>
